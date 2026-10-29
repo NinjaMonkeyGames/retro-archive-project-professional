@@ -1,9 +1,10 @@
 <?php
 
-$host = 'db'; // Uses the MySQL container service name
-$user = 'dev_user';
-$pass = 'dev_password';
-$db   = 'my_database';
+// Read variables injected by Docker (with fallbacks if needed)
+$host = getenv('DB_HOST') ?: 'db';
+$user = getenv('DB_USER') ?: 'dev_user';
+$pass = getenv('DB_PASS') ?: 'dev_password';
+$db   = getenv('DB_NAME') ?: 'my_database';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);

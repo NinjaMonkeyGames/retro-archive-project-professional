@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: my_database
+      MYSQL_DATABASE: retro-db
       MYSQL_USER: dev_user
       MYSQL_PASSWORD: dev_password
     ports:

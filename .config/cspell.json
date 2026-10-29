@@ -253,6 +253,7 @@
     "nonmixed",
     "noopener",
     "phpcs",
+    "phpdotenv",
     "phpmyadmin",
     "phpvfscomposer",
     "scannable",
