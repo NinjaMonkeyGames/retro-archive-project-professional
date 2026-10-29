@@ -10,7 +10,8 @@
     ".git",
     "**.yyp",
     "/vendor",
-    ".htmllintrc"
+    ".htmllintrc",
+    "/loose-data-collection"
   ],
   "language": "en-GB",
   "overrides": [
