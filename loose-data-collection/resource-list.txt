@@ -1,0 +1,8 @@
+- https://serialstation.com     | has a large archive of information but its not complete as they note on their own site.
+    - This is better than moby for PSN content, moby is more complete over all but lacks PSN content. 
+- https://retroachievements.org | A service for awarding trophies for retro ROMs.
+- https://www.mobygames.com     | Seems to be a complete list of ROMs
+- https://r-roms.github.io      | A huge resource for downloading Playstation Games adnd roms.
+- https://archive.org/details/ps3-game-updates_202207 | Contains Some PS3 Updates.
+- https://www.superpsx.com      | Contains a bunch of Playstation content including games and DLC.
+- http://ps3.aldostools.org     | Playstation community portal.
