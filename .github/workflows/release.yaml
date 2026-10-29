@@ -1,0 +1,54 @@
+# Runs semantic-release on push to master/develop/release/*[cite: 7].
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - 'release/**'
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  log-triggering-commit-author:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "github.event.head_commit.author.username = '${{ github.event.head_commit.author.username }}'"
+
+  release:
+    if: github.event.head_commit.author.username != 'nmg-bot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Mint nmg-bot installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Wait for installation token to propagate
+        run: sleep 5
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: npx semantic-release --extends ./.config/release.config.js

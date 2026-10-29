@@ -1,0 +1,160 @@
+# Lints the pull request's title + body together as a single Conventional
+# Commit message, reusing .config/commitlint.pr-message.config.mjs - a
+# thin wrapper around .config/commitlint.config.mjs (see that file) that
+# turns off two specific rules for this check only. Why is explained
+# below; every other rule (type/scope/subject/body/references/etc.) is
+# still the same one set of rules checked in both places, not a separate
+# tool with its own duplicated type/scope list.
+#
+# Why title+body, not title alone: feature/* -> develop PRs are
+# squash-merged (see CONTRIBUTING.md), so none of the branch's individual
+# commits survive into develop's history - only the squash commit does.
+# Most rules (type/scope/subject/body/references) have to run against the
+# PR's title and body specifically, since that - not the discarded
+# commits - is what the squash commit's own header and body end up being.
+#
+# IMPORTANT: for that to actually be true, the repo's squash-merge default
+# commit message must include the PR description:
+#   Settings > General > Pull Requests > Allow squash merging >
+#   Default commit message > "Pull request title and description"
+# Otherwise GitHub's default squash message drops the body, and this
+# check would be validating text that never reaches history.
+#
+# The one exception to "check title+body because that's what persists" is
+# the Signed-off-by trailer, which is why signed-off-by-regex and
+# signed-off-by are disabled in commitlint.pr-message.config.mjs for THIS
+# check specifically. When a feature branch's commit already carries a
+# valid Signed-off-by trailer, GitHub auto-fills the PR description from
+# that commit's body but strips the Signed-off-by line out of it - not
+# because it's missing, but because GitHub recognises it as a git trailer
+# and re-attaches it to the final squash commit automatically from the
+# source commit(s), independent of whatever the PR description says.
+# Requiring it in the PR body too doesn't add coverage - the source
+# commit already has it, and that commit is already fully linted,
+# signed-off-by included, by preview.yaml's "Lint last commit (feature/*)"
+# step on every push to the branch. It would only produce a second,
+# duplicate copy of the same trailer once GitHub carries the real one
+# forward at squash time.
+#
+# GitHub's trailer-carry-forward reads every commit being squashed, not
+# just the tip, while preview.yaml's "Lint last commit (feature/*)" step
+# only ever lints the tip (`--last`). The "Lint signed-off-by (full commit
+# range)" step below covers the rest of a multi-commit feature branch: it
+# checks ONLY the two signed-off-by rules
+# (commitlint.signed-off-only.config.mjs - the inverse of
+# commitlint.pr-message.config.mjs, everything else off, just those two
+# on) against every commit since this branch forked from develop, the
+# same way preview.yaml already does `--from "$(git merge-base ...)" --to
+# HEAD` for hotfix/*/release/*. The checkout below fetches full history
+# and checks out the PR's real head commit (not the synthetic
+# refs/pull/N/merge ref actions/checkout uses by default for
+# pull_request events, which would otherwise get linted as an extra,
+# unrelated commit in the range).
+#
+# That step deliberately skips merge commits in the range (--no-merges,
+# linting each remaining commit individually rather than one --from/--to
+# call over the whole range). Merge commits are synthetic - the same
+# reasoning preview.yaml's "Lint last commit (feature/*)" step already
+# relies on: nothing requires a merge commit's own message to carry a
+# Signed-off-by line, since the real content it brings in was already
+# linted, trailer included, when it landed on its source branch. This
+# matters here specifically because master only ever receives merge
+# commits (release/*/hotfix/* -> master), and this branch's range can
+# include one of those if master was synced into develop's history by
+# the time this PR opened. Linting it as if it were an ordinary commit
+# would fail it for missing a trailer no merge commit is expected to
+# have, with no way to fix it after the fact short of rewriting master's
+# history - excluding merges here closes that off instead of creating it.
+#
+# develop does not use a merge queue, so this only ever triggers on the
+# PR's own pull_request events - there is no separate merge_group case to
+# account for here.
+#
+# On a single-commit feature branch, GitHub auto-fills a new PR's title
+# and description from that one commit - useful as a starting point, but
+# the commit that happens to be the branch's tip doesn't necessarily
+# describe what the branch as a whole is contributing to develop (a
+# trailing `chore:`/`test:` commit is a common case). Nothing here can
+# judge whether a PR's title+body is actually a good description - that's
+# not a check CI can perform - but the "Require the PR title to describe
+# more than the last commit" step below at least catches the case where
+# nobody has looked at it: if the title still matches the tip commit's
+# subject exactly, it's almost certainly the untouched auto-fill rather
+# than a deliberate choice, and the check fails until it's edited to
+# something else.
+
+name: Lint PR Message
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - develop
+
+jobs:
+  lint-pr-message:
+    runs-on: ubuntu-latest
+    steps:
+      # ref + fetch-depth: 0 - see the header comment on the
+      # "Lint signed-off-by (full commit range)" step below for why: it
+      # needs this PR's real head commit (not the synthetic merge ref)
+      # and full history to compute a merge-base against origin/develop.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # Runs before installing anything else - cheap to check, and no
+      # point spending time on npm ci / commitlint if this is just going
+      # to fail anyway. See the header comment above for why this exists.
+      - name: Require the PR title to describe more than the last commit
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          last_subject="$(git log -1 --format=%s)"
+          if [ "$TITLE" = "$last_subject" ]; then
+            echo "::error::PR title is identical to the last commit's subject ('$last_subject'). GitHub auto-fills this from a single-commit branch, and it describes that one commit - not what's landing on develop as a whole. Edit the PR title (and body, if it needs it too) to describe the branch's actual contribution, then push again."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install commitlint
+        run: npm ci
+
+      - name: Print commitlint version
+        run: npx commitlint --version
+
+      # Title and body are passed via env, not interpolated directly into
+      # the script, since PR title/body is untrusted user input.
+      - name: Assemble title + body as one message
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s\n\n%s\n' "$TITLE" "$BODY" > pr-message.txt
+
+      # --edit tells commitlint to lint this file's raw content directly
+      # (the same mode used for commit-msg git hooks), instead of its
+      # default "derive commits from git" behaviour, which would ignore
+      # pr-message.txt and lint the branch's last commit instead.
+      - name: Lint against .config/commitlint.pr-message.config.mjs
+        run: npx commitlint --config .config/commitlint.pr-message.config.mjs --edit pr-message.txt
+
+      # Checks every non-merge commit since this branch forked from
+      # develop - not just the PR's title+body - against the signed-off-by
+      # rules alone, so that a non-tip commit's missing/malformed
+      # signature can't reach develop's history unnoticed (see the header
+      # comment above on why this needs its own step alongside the
+      # title+body lint, and on why merge commits are excluded from it).
+      - name: Lint signed-off-by (full commit range, excluding merges)
+        run: |
+          set -euo pipefail
+          from="$(git merge-base HEAD origin/develop)"
+          git rev-list --no-merges --reverse "$from..HEAD" | while read -r sha; do
+            echo "Checking $sha..."
+            git log -1 --format=%B "$sha" > commit-msg.txt
+            npx commitlint --config .config/commitlint.signed-off-only.config.mjs --edit commit-msg.txt
+          done

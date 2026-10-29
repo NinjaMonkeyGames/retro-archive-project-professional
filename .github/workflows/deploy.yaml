@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+      - 'feature/**'
+  create:
+
+jobs:
+  detect-env:
+    if: github.event_name != 'create' || github.ref_type != 'tag'
+    uses: ./.github/workflows/detect-environment.yaml
+
+  log-triggering-commit-author:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "github.event.head_commit.author.username = '${{ github.event.head_commit.author.username }}'"
+
+  preview:
+    needs: detect-env
+    if: needs.detect-env.outputs.environment == 'preview' || needs.detect-env.outputs.environment == 'staging' || needs.detect-env.outputs.environment == 'production'
+    uses: ./.github/workflows/preview.yaml
+
+  deploy:
+    needs: detect-env
+    if: needs.detect-env.outputs.environment != 'none' && needs.detect-env.outputs.environment != 'preview' && (github.event_name != 'push' || github.event.head_commit.author.username != 'nmg-bot[bot]')
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect-env.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Deploy to ${{ needs.detect-env.outputs.environment }}
+        run: |
+          echo "TODO: replace with real deploy steps for '${{ needs.detect-env.outputs.environment }}'"
+
+      - name: SFTP Deploy to Production
+        if: needs.detect-env.outputs.environment == 'production'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 22
+          source: "."
+          target: ${{ secrets.FTP_SERVER_DIR }}
+
+      - name: SFTP Deploy to Staging
+        if: needs.detect-env.outputs.environment == 'staging'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 22
+          source: "."
+          target: '${{ secrets.FTP_SERVER_DIR }}/staging'

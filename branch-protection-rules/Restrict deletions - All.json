@@ -1,0 +1,34 @@
+{
+  "id": 23682587,
+  "name": "Restrict deletions - All",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/gamemaker-project-template",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [
+        "refs/heads/hotfix/**",
+        "refs/heads/gh-readonly-queue/**",
+        "refs/heads/feature/**",
+        "refs/heads/develop",
+        "refs/heads/release/**"
+      ],
+      "include": [
+        "~ALL"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 2699733,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ]
+}

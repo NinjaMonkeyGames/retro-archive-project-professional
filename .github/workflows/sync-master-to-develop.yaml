@@ -1,0 +1,323 @@
+# Whenever master changes for any reason (a release/* merge, a hotfix/*
+# merge, semantic-release's version-bump commit, or anything else), this
+# workflow keeps two other places from drifting behind what's actually
+# shipped:
+#
+#   1. Opens a pull request bringing those changes into develop, if one
+#      isn't already open.
+#   2. Merges master directly into every currently open release/*
+#      branch, with no pull request and no review gate before the merge
+#      lands.
+#
+# These use two different mechanisms because release/* branches
+# structurally can't receive an incoming pull request at all -
+# check-source-branch rejects any PR targeting release/*/hotfix/*, since
+# those branches only ever merge OUT to master (see CONTRIBUTING.md). A
+# direct push is how a human keeps a release branch in sync with master
+# today, and isn't otherwise restricted - only master and develop require
+# every change to arrive via PR.
+#
+# ## Develop sync PR
+#
+# Before opening (or leaving alone) the PR, this checks every non-merge
+# commit between develop and master's new tip against the same
+# signed-off-by rule pr-title-lint.yaml enforces on the PR itself
+# (commitlint.signed-off-only.config.mjs, merges excluded - see that
+# file's header comment for why merges are excluded). If that check
+# would fail, the job stops right there: no PR is opened, and the
+# "Direct merge into open release/* branches" step below never runs
+# either, so a bad commit on master doesn't also get carried into every
+# in-flight release branch while nobody's looking.
+#
+# This is a deliberate duplicate of a check pr-title-lint.yaml already
+# does. The reason it's worth running twice: once a commit lacking a
+# valid signoff is actually on master, opening the develop PR anyway
+# doesn't give anyone a chance to fix it before it's user-visible - the
+# PR just appears already broken, and master's own history can't be
+# rewritten to get it out of the checked range (this repo's branches are
+# fast-forward-only). Catching it here means the failure shows up as this
+# workflow's own run failing, with a clear reason, instead of as a
+# silently-unmergeable PR someone has to notice and diagnose from
+# scratch. Recovering still means fixing the offending commit by hand
+# (rewriting it via the Git Data API and force-updating the affected
+# ref) - this doesn't remove that need, it just stops the workflow from
+# building more state (a PR, release-branch merges) on top of a master
+# that's already known to be bad.
+#
+# This only ever opens the PR - it never merges it. A human still
+# reviews and merges, same as everywhere else in this repo. Once a sync
+# PR is open, there's nothing to "update" on later pushes to master: an
+# open PR tracks the live diff between its base and head branches
+# automatically (that's just how GitHub PRs work), so the existing PR
+# already reflects new commits without this workflow touching it again.
+#
+# Merge this PR with a regular merge commit, not squash - same reasoning
+# as release/* and hotfix/* merging back into develop (see
+# CONTRIBUTING.md): this preserves history rather than collapsing it.
+#
+# For the PR's title+body to actually be what lands in develop's history,
+# the "Allow merge commits" default commit message setting must be
+# configured to use the pull request title and description:
+#   Settings > General > Pull Requests > Allow merge commits >
+#   Default commit message > "Default to pull request title and
+#   description"
+# Left on its default, GitHub instead auto-generates the merge commit
+# message from a list of the underlying commits being merged (in this
+# repo's case, the full multi-paragraph changelog bodies of every
+# "chore(release): x.y.z" commit since the last sync), and the carefully
+# written body below never reaches develop's history even though it
+# still satisfies pr-title-lint.yaml's check (which lints the PR's
+# title+body directly, not whatever ends up in git history).
+#
+# The title + body below are pre-written to satisfy pr-title-lint.yaml's
+# commitlint check (same .config/commitlint.config.mjs, run against
+# title+body as one message) on the first open, rather than needing a
+# manual edit every time:
+#   - title: "chore(config): sync master into develop" - "config" is a
+#     real entry in scope-enum, subject is lowercase and under 50 chars.
+#   - body: sentence-case, >=10 chars, every line under 72.
+#   - "Reference #1", not "Closes #1" or "Close #1" - issue #1 is meant to
+#     stay open forever as a running log of every sync (every sync PR
+#     references the same #1; none of them should ever close it).
+#     Reference links the PR into #1's timeline without closing it, still
+#     satisfies commitlint's references-empty rule, and is one of the
+#     exactly three keywords (Close, Fix, Reference - see
+#     .config/issue-reference-keyword.js) this repo's commitlint config
+#     allows before a "#123"-style reference at all - the singular,
+#     capitalised form matters: "References #1" (plural) fails that rule.
+#   - Signed-off-by carries nmg-bot's own identity, not a human's - this
+#     PR is genuinely bot-generated, no human wrote it, so a human DCO
+#     signoff would misattribute authorship. The plain
+#     "nmg-bot[bot]@users.noreply.github.com" form (rather than the
+#     numeric-id form GitHub uses to attribute real commits/authorship,
+#     e.g. "195387234+nmg-bot[bot]@users.noreply.github.com") is used
+#     here because this trailer is just a DCO-style footer line, not tied
+#     to real git authorship (the merge/PR itself is already
+#     authenticated as nmg-bot via the App token elsewhere in this repo's
+#     workflows) - and the numeric-id form runs long enough to risk
+#     tripping footer-max-line-length (72, set in commitlint.config.mjs)
+#     depending on how many digits nmg-bot's numeric id renders as. The
+#     plain form stays comfortably under the limit regardless.
+#
+# The PR is opened with nmg-bot's own minted App token, not the default
+# GITHUB_TOKEN: GitHub does not let the default GITHUB_TOKEN trigger
+# further workflow runs (recursion prevention) - for
+# pull_request opened/synchronize/reopened specifically, it doesn't skip
+# the run outright, it creates the run and holds it in "Action required"
+# pending manual approval forever. Minting the same App token here (as
+# release.yaml already does) and passing it to github-script's
+# `github-token:` input makes the PR's "opened" event authenticate as a
+# real App installation, so pr-title-lint.yaml and branch-protection.yaml
+# run immediately instead of sitting on a stuck approval every sync.
+#
+# ## Direct merge into open release/* branches
+#
+# There is no human review gate here - that's the deliberate tradeoff for
+# closing the "an in-flight release can't ship without a fix that landed
+# on master after the branch was cut" gap without a human approving every
+# master push. If that tradeoff ever stops being acceptable, review can
+# move back in front of this merge by returning to the manual step this
+# replaces: check out the release branch and merge master's changes onto
+# it by hand.
+#
+# A plain `git push` of a normal local merge commit to the release branch
+# would be rejected outright: every commit, on every branch, must be
+# cryptographically signed (see CONTRIBUTING.md), and a commit created
+# locally in this job has no signing key attached. Instead, the actual
+# commit that lands on the release branch is created through the Git
+# Data API with the merge's tree and both branches' tip commits as
+# parents, and the branch's ref is updated through the API too - the
+# same technique release.config.js's verified-git-commit.plugin.cjs
+# plugin uses for its own version-bump commit, and for the same reason:
+# GitHub signs a commit it creates itself through that API on nmg-bot's
+# behalf, satisfying the signed-commit requirement without a real
+# signing key in CI.
+#
+# The Git Data API's create-commit call only accepts a tree whose
+# objects already exist in the GitHub-hosted repository - a tree
+# computed purely by a local `git merge` doesn't qualify, since its
+# content only exists in this job's local checkout until something
+# uploads it. The step below gets it there by committing the merge
+# locally (this local commit's own SHA and message are discardable - all
+# that matters is its tree) and pushing that commit to a throwaway ref
+# outside any protected branch pattern (`refs/sync-tmp/<branch>`), which
+# uploads the tree and any blobs it introduces without being subject to
+# the signed-commit requirement that would reject an ordinary push to
+# the release branch itself. Once that tree exists on GitHub, the real,
+# signed commit is created by the Git Data API call referencing it, the
+# release branch's ref is updated to point at that commit, and the
+# temporary ref is deleted - it was only ever a transport mechanism.
+#
+# The commit message is built to satisfy the same
+# .config/commitlint.config.mjs rules preview.yaml's "Lint commit range
+# (release/*)" step checks against every commit already on a release
+# branch: a valid type/scope/subject, a body of at least 10 characters,
+# a references footer, and a Signed-off-by trailer - the same reasoning
+# and the same nmg-bot address as the develop sync PR's body above.
+#
+# A real merge conflict between master and a release branch can't be
+# resolved automatically. When one occurs, that branch's merge is
+# aborted before anything is written, and the job fails loudly (visible
+# in the Actions run) rather than silently skipping it. The fix is the
+# same manual step this automation otherwise replaces: check out the
+# release branch, merge or rebase master's changes onto it by hand,
+# resolve the conflict, and push directly.
+
+name: Sync Master to Develop and Release Branches
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Mint nmg-bot installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install commitlint
+        run: npm ci
+
+      # See the "Develop sync PR" header comment above for why this runs
+      # before the PR is touched at all, and why merges are excluded.
+      - name: Require every non-merge commit reaching master to have a valid signoff
+        run: |
+          set -euo pipefail
+          from="$(git merge-base HEAD origin/develop)"
+          git rev-list --no-merges --reverse "$from..HEAD" | while read -r sha; do
+            echo "Checking $sha..."
+            git log -1 --format=%B "$sha" > commit-msg.txt
+            npx commitlint --config .config/commitlint.signed-off-only.config.mjs --edit commit-msg.txt
+          done
+
+      - name: Open sync PR if one isn't already open
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const { data: existing } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'develop',
+              head: `${context.repo.owner}:master`,
+            });
+
+            if (existing.length > 0) {
+              core.info(`Sync PR already open: #${existing[0].number}`);
+              return;
+            }
+
+            const body = [
+              'Touched:',
+              '',
+              '- All',
+              '',
+              'Description:',
+              '',
+              '- Keeps master up-to-date to help prevent conflicts.',
+              '',
+              'Reference #1',
+              '',
+              'Signed-off-by: nmg-bot[bot] <nmg-bot[bot]@users.noreply.github.com>',
+            ].join('\n');
+
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'chore(config): sync master into develop',
+              head: 'master',
+              base: 'develop',
+              body,
+            });
+
+            core.info(`Opened sync PR #${pr.data.number}`);
+
+      - name: Merge master into every open release/* branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
+
+          master_sha="$(git rev-parse origin/master)"
+          failures=0
+
+          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/release/*'); do
+            branch="${ref#origin/}"
+            branch_sha="$(git rev-parse "$ref")"
+
+            if git merge-base --is-ancestor "$master_sha" "$branch_sha"; then
+              echo "$branch already contains master's tip - nothing to do."
+              continue
+            fi
+
+            echo "Merging master into $branch..."
+            git checkout --quiet --detach "$ref"
+
+            if ! git -c user.name="nmg-bot[bot]" -c user.email="nmg-bot[bot]@users.noreply.github.com" merge --no-ff --no-edit "$master_sha"; then
+              echo "::error::Merge conflict bringing master into $branch - resolve it by hand: check out the branch, merge or rebase master onto it, and push directly."
+              git merge --abort
+              failures=1
+              continue
+            fi
+
+            # This local commit's own SHA/message are discarded - see the
+            # header comment above. Pushing it to a throwaway ref uploads
+            # its tree (and any new blobs) to GitHub without touching the
+            # release branch itself.
+            tmp_ref="refs/sync-tmp/$branch"
+            tree_sha="$(git rev-parse 'HEAD^{tree}')"
+            git push --quiet origin "HEAD:$tmp_ref"
+
+            message=$(printf '%s\n' \
+              "chore(config): merge master into $branch" \
+              "" \
+              "Description:" \
+              "" \
+              "- Keeps this release branch up to date with master while it's" \
+              "  in flight, so it can't ship without a fix that landed on" \
+              "  master after this branch was cut." \
+              "" \
+              "Reference #1" \
+              "" \
+              "Signed-off-by: nmg-bot[bot] <nmg-bot[bot]@users.noreply.github.com>")
+
+            commit_sha=$(gh api "repos/${{ github.repository }}/git/commits" \
+              -f message="$message" \
+              -f tree="$tree_sha" \
+              -f "parents[]=$branch_sha" \
+              -f "parents[]=$master_sha" \
+              --jq '.sha')
+
+            gh api "repos/${{ github.repository }}/git/refs/heads/$branch" \
+              -X PATCH -f sha="$commit_sha" -F force=false
+
+            git push --quiet origin --delete "$tmp_ref"
+            git reset --hard "$ref" --quiet
+
+            echo "Updated $branch to $commit_sha"
+          done
+
+          if [ "$failures" -ne 0 ]; then
+            echo "::error::One or more release/* branches could not be merged automatically - see log above."
+            exit 1
+          fi

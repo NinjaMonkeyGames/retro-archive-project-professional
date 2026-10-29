@@ -1,0 +1,175 @@
+# Closes issues a feature, release, or hotfix pull request referenced in its
+# description, at the moment that pull request actually merges - immediately
+# per merge, not batched to release time.
+#
+# Why this exists: GitHub's own "Closes #123"/"Fixes #123" keywords only
+# auto-close when a pull request merges into the repository's DEFAULT branch
+# (master), not develop - see CONTRIBUTING.md's "Closing issues" section.
+# That section is why this repo's convention is "Reference #123" instead -
+# deliberately worded so it never triggers GitHub's own keyword matching,
+# with issues closed by hand at merge time so a human actually reviews what
+# a merge resolves rather than trusting a keyword match. This workflow
+# doesn't remove that review - by the time it runs, a human has already
+# reviewed and merged the PR itself, same as before. All it automates is the
+# last, easy-to-forget step: actually clicking close afterwards.
+#
+# Scope covers every pull request that actually merges into master or
+# develop under this repo's normal supporting-branch flow - feature/* ->
+# develop (squash merge), and release/* -> master and hotfix/* -> master
+# (both merge commits) - matching every pairing in branch-protection.yaml's
+# own source-branch whitelist except one:
+#   - master -> develop (the automated sync PR from
+#     sync-master-to-develop.yaml) is deliberately excluded. Its body always
+#     references issue #1, which is a running log meant to stay open
+#     forever - closing it here would be a bug, not a feature.
+# The case block below is a default-deny whitelist for exactly this reason,
+# the same pattern branch-protection.yaml's check-source-branch job uses.
+#
+# Issue references are read from the merged PR's own body, not its
+# commits - for feature/* this is what actually persists (the branch is
+# squash-merged, and the squash commit's body is the PR description - see
+# pr-title-lint.yaml's header comment); for release/* and hotfix/* the PR
+# body is the one place guaranteed to hold the author's own summary of what
+# the change addresses, regardless of how many commits (or how much of a
+# stabilisation period) are behind it.
+#
+# Recognises exactly the same three keywords commitlint enforces on every
+# commit and PR body - Close, Fix, Reference (case-sensitive, singular, no
+# other form - see .config/issue-reference-keyword.js) - each introducing
+# its own line, followed by one or more "#123"-style references or full
+# issue URLs on that line. A commit/PR body that passed commitlint's own
+# check is therefore guaranteed to already be in a form this workflow
+# recognises; nothing here accepts a broader vocabulary than commitlint
+# does, so there's no way to write a reference that lints clean but is
+# silently skipped here (or the reverse).
+#
+# An issue that's already closed, or a number that isn't a real issue (or is
+# actually a pull request), is logged and skipped rather than failing the
+# run - by the time this runs the PR is already merged, so there's nothing
+# left to protect by failing loudly over a bad reference.
+
+name: Close Referenced Issues
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+      - master
+
+jobs:
+  close-referenced-issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      # Same whitelist style as branch-protection.yaml's check-source-branch
+      # job: one case matching every in-scope base:head pairing, default
+      # deny. Later steps are skipped (not failed) when this doesn't match -
+      # e.g. the develop:master sync PR, or master:release/*, both land on
+      # branches this workflow triggers on but aren't in scope (see header
+      # comment above).
+      - name: Determine whether this merge is in scope
+        id: scope
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+        run: |
+          case "$BASE:$HEAD" in
+            develop:feature/*|master:release/*|master:hotfix/*)
+              echo "OK: '$HEAD' -> '$BASE' is in scope."
+              echo "in_scope=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "'$HEAD' -> '$BASE' is not feature/*->develop, release/*->master, or hotfix/*->master; nothing to do."
+              echo "in_scope=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      # nmg-bot, not the default GITHUB_TOKEN, so the closing comment and
+      # the close itself are attributed to the App's bot identity, same
+      # reasoning as release.yaml and sync-master-to-develop.yaml.
+      - name: Mint nmg-bot installation token
+        if: steps.scope.outputs.in_scope == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Close issues referenced in the pull request body
+        if: steps.scope.outputs.in_scope == 'true'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const prNumber = context.payload.pull_request.number;
+            const prTitle = context.payload.pull_request.title;
+            const baseRef = context.payload.pull_request.base.ref;
+
+            // Mirrors .config/issue-reference-keyword.js exactly: a line
+            // (bullet markers stripped) must start with Close, Fix, or
+            // Reference - case-sensitive, singular, no other form - to have
+            // any "#123"/issue-URL references on it recognised at all.
+            const ALLOWED_KEYWORDS = ['Close', 'Fix', 'Reference'];
+            const lineStartRe = new RegExp(`^(?:${ALLOWED_KEYWORDS.join('|')}):?\\s+`);
+            const refRe = /#(\d+)|https?:\/\/github\.com\/[^\s/]+\/[^\s/]+\/issues\/(\d+)/g;
+
+            const numbers = new Set();
+            for (const rawLine of body.split('\n')) {
+              const line = rawLine.replace(/^[\s*-]+/, '');
+              if (!lineStartRe.test(line)) continue;
+
+              let match;
+              while ((match = refRe.exec(line)) !== null) {
+                numbers.add(Number(match[1] || match[2]));
+              }
+            }
+
+            if (numbers.size === 0) {
+              core.info('No issue references found in the PR body - nothing to close.');
+              return;
+            }
+
+            const note = `Closed via #${prNumber} ("${prTitle}"), merged into \`${baseRef}\`.`;
+
+            for (const issueNumber of numbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                });
+
+                if (issue.pull_request) {
+                  core.warning(`#${issueNumber} is a pull request, not an issue - skipping.`);
+                  continue;
+                }
+
+                if (issue.state === 'closed') {
+                  core.info(`#${issueNumber} is already closed - skipping.`);
+                  continue;
+                }
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: note,
+                });
+
+                core.info(`Closed #${issueNumber}.`);
+              } catch (err) {
+                core.warning(`Could not close #${issueNumber}: ${err.message}`);
+              }
+            }

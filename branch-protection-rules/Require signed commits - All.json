@@ -1,0 +1,22 @@
+{
+  "id": 22478496,
+  "name": "Require signed commits - All",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/gamemaker-project-template",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "~ALL"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "required_signatures"
+    }
+  ],
+  "bypass_actors": []
+}

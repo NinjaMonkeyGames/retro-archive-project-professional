@@ -1,0 +1,264 @@
+{
+  "ignorePaths": [
+    "**/cspell.json",
+    "**/*.yy",
+    "**Build**",
+    "**options**",
+    "**sprites**",
+    "**AppDir",
+    "package.json",
+    ".git",
+    "**.yyp",
+    "/vendor",
+    ".htmllintrc"
+  ],
+  "language": "en-GB",
+  "overrides": [
+    {
+      "filename": ".github/workflows/pr-title-lint.yaml",
+      "words": [
+        "pipefail"
+      ]
+    },
+    {
+      "filename": "README.md",
+      "words": [
+        "yzhang",
+        "davidanson",
+        "joshbolduc",
+        "timonwong",
+        "shellcheck"
+      ]
+
+    },
+    {
+      "filename": ".config/release.config.js",
+      "words": [
+        "releaserc",
+        "EPRERELEASEBRANCHES",
+        "analyzer"
+      ]
+    },
+    {
+      "filename": ".config/stable-only-assets.plugin.js",
+      "words": [
+        "analyzer"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/branch-protection.yaml",
+      "words": [
+        "esac"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/detect-environment.yaml",
+      "words": [
+        "esac"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/objects/obj_grid_controller/Create_0.gml",
+      "words": [
+        "vformat",
+        "tilemap",
+        "vbuff",
+        "handpoint",
+        "linelist"
+
+
+      ]
+    },
+    {
+      "filename": ".vscode/extensions.json",
+      "words": [
+        "yzhang",
+        "davidanson",
+        "fnando",
+        "wmaurer",
+        "dbaeumer",
+        "joshbolduc",
+        "timonwong",
+        "shellcheck"
+
+      ]
+    },
+    {
+      "filename": ".vscode/settings.json",
+      "words": [
+        "yzhang"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/sync-master-to-develop.yaml",
+      "words": [
+        "tradeoff",
+        "discardable",
+        "pipefail"
+      ]
+    },
+    {
+      "filename": "CONTRIBUTING.md",
+      "words": [
+        "Gitflow",
+        "WASD"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/preview.yaml",
+      "words": [
+        "globby's",
+        "nonzero",
+        "operagx"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/notes/todo/todo.txt",
+      "words": [
+        "globalvar"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/scripts/spt_get_asset_type_as_string/spt_get_asset_type_as_string.gml",
+      "words": [
+        "animationcurve",
+        "particlessystem"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/scripts/spt_get_asset_type_as_string/spt_get_asset_type_as_string.gml",
+      "words": [
+        "particlessystem"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/objects/obj_unit_test/Create_0.gml",
+      "words": [
+        "particlessystem"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/release.yaml",
+      "words": [
+        "analyzer",
+        "ungated"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/objects/obj_unit_test/Create_0.gml",
+      "words": [
+        "vbuff"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/rooms/rm_main/RoomCreationCode.gml",
+      "words": [
+        "tilemap"
+
+      ]
+    },
+    {
+      "filename": "grid-utility-professional/scripts/spt_get_asset_type_as_string/spt_get_asset_type_as_string.gml",
+      "words": [
+        "particlesystem"
+
+      ]
+    },
+    {
+      "filename": ".github/workflows/preview.yaml",
+      "words": [
+        "shellcheck",
+        "shopt",
+        "distributables",
+        "matrixed"
+
+      ]
+    },
+    {
+      "filename": ".config/eslint.config.js",
+      "words": [
+        "allman",
+        "vars",
+        "unsatisfiable"
+
+      ]
+    },
+    {
+      "filename": "CONTRIBUTING.md",
+      "words": [
+        "tsrc"
+
+      ]
+    },
+    {
+      "filename": "README.md",
+      "words": [
+        "dbaeumer",
+        "analyzer"
+      ]
+    },
+    {
+      "filename": ".github/workflows/close-referenced-issues.yaml",
+      "words": [
+        "esac"
+      ]
+    },
+    {
+      "filename": ".config/phpcs.xml",
+      "words": [
+        "colors"
+      ]
+    }
+  ],
+  "version": "0.2",
+  "words": [
+    "Allman",
+    "appleboy",
+    "bgcolor",
+    "codesniffer",
+    "commitlint",
+    "dbaeumer",
+    "ERRMODE",
+    "figcaption",
+    "formulahendry",
+    "freeform",
+    "GAMEMAKER",
+    "Gitflow",
+    "htmlhint",
+    "htmllint",
+    "htmllintrc",
+    "johnrdorazio",
+    "linted",
+    "linters",
+    "longdesc",
+    "marginheight",
+    "marginwidth",
+    "maxerr",
+    "monkeyknuckles",
+    "mysqli",
+    "ninjamonkeygames",
+    "nonmixed",
+    "noopener",
+    "phpcs",
+    "phpmyadmin",
+    "phpvfscomposer",
+    "scannable",
+    "shellcheck",
+    "shivammathur",
+    "squizlabs",
+    "tabindex",
+    "tagname"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": 23682581,
+  "name": "Restrict creations - All",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/gamemaker-project-template",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [
+        "refs/heads/feature/**",
+        "refs/heads/hotfix/**",
+        "refs/heads/release/**",
+        "refs/heads/gh-readonly-queue/**"
+      ],
+      "include": [
+        "~ALL"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "creation"
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 2699733,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ]
+}

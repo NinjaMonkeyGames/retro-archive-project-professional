@@ -1,0 +1,41 @@
+services:
+  webserver:
+    build: .
+    container_name: lamp_webserver
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./project-files:/var/www/html:delegated
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: lamp_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: my_database
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: lamp_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root_password
+    depends_on:
+      - db
+
+volumes:
+  db_data:

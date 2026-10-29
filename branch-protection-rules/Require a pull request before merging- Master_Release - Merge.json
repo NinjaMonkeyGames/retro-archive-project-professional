@@ -1,0 +1,38 @@
+{
+  "id": 22478481,
+  "name": "Require a pull request before merging- Master/Release - Merge",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/gamemaker-project-template",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "refs/heads/master"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": true,
+        "required_reviewers": [],
+        "require_code_owner_review": false,
+        "dismissal_restriction": {
+          "enabled": false,
+          "allowed_actors": []
+        },
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "require_extra_approval_for_unattributed_changes": false,
+        "allowed_merge_methods": [
+          "merge"
+        ]
+      }
+    }
+  ],
+  "bypass_actors": []
+}

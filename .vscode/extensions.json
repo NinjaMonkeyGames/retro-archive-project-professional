@@ -1,0 +1,21 @@
+{
+  "recommendations": 
+    [
+      "yzhang.markdown-all-in-one",
+      "davidanson.vscode-markdownlint",
+      "redhat.vscode-yaml",
+      "fnando.linter",
+      "wmaurer.change-case",
+      "github.vscode-github-actions",
+      "dbaeumer.vscode-eslint",
+      "streetsidesoftware.code-spell-checker-cspell-bundled-dictionaries",
+      "joshbolduc.commitlint",
+      "streetsidesoftware.code-spell-checker",
+      "timonwong.shellcheck",
+      "ms-azuretools.vscode-docker",
+      "ms-azuretools.vscode-containers",
+      "htmlhint.vscode-htmlhint",
+      "stylelint.vscode-stylelint",
+      "johnrdorazio.vscode-phpcs"
+    ]
+}

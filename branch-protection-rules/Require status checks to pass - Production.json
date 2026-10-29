@@ -1,0 +1,50 @@
+{
+  "id": 26118548,
+  "name": "Require status checks to pass - Production",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/retro-archive-project-professional",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "refs/heads/master"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "check-source-branch",
+            "integration_id": 15368
+          },
+          {
+            "context": "preview / commitlint",
+            "integration_id": 15368
+          },
+          {
+            "context": "preview / markdownlint",
+            "integration_id": 15368
+          },
+          {
+            "context": "preview / cspell",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 2699733,
+      "actor_type": "Integration",
+      "bypass_mode": "always"
+    }
+  ]
+}

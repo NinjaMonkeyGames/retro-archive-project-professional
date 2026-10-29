@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="ProjectRuleset">
+    <description>PSR-12 Code Sniffer Configuration</description>
+
+    <!-- Include full PSR-12 standard -->
+    <rule ref="PSR12"/>
+
+    <!-- File patterns to check -->
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="p"/>
+
+    <!-- Ignore non-project code -->
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>

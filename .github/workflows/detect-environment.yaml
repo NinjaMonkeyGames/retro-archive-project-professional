@@ -1,0 +1,53 @@
+# Reusable workflow: resolves a deploy environment from the current branch,
+# following the branching workflow defined in CONTRIBUTING.md.
+#
+#   master     -> production
+#   develop    -> development
+#   release/*  -> staging
+#   hotfix/*   -> staging
+#   feature/*  -> preview  (one shared environment all feature branches run through)
+#   anything else (ad-hoc branches) -> none
+#
+# Usage from another workflow:
+#
+#   jobs:
+#     detect-env:
+#       uses: ./.github/workflows/detect-environment.yaml
+#
+#     deploy:
+#       needs: detect-env
+#       if: needs.detect-env.outputs.environment != 'none'
+#       environment: ${{ needs.detect-env.outputs.environment }}
+#       runs-on: ubuntu-latest
+#       steps:
+#         - run: echo "Deploying to ${{ needs.detect-env.outputs.environment }}"
+
+name: Detect Environment
+
+on:
+  workflow_call:
+    outputs:
+      environment:
+        description: "Deploy environment resolved from the branch (production, staging, development, preview, or none)"
+        value: ${{ jobs.detect-environment.outputs.environment }}
+
+jobs:
+  detect-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.resolve.outputs.environment }}
+    steps:
+      - id: resolve
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          case "$BRANCH" in
+            master)     environment=production ;;
+            develop)    environment=development ;;
+            release/*)  environment=staging ;;
+            hotfix/*)   environment=staging ;;
+            feature/*)  environment=preview ;;
+            *)          environment=none ;;
+          esac
+          echo "Branch '$BRANCH' resolved to environment '$environment'"
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"

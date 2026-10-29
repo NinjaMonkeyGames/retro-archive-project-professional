@@ -1,0 +1,25 @@
+{
+  "id": 22478427,
+  "name": "Block force pushes - All",
+  "target": "branch",
+  "source_type": "Repository",
+  "source": "NinjaMonkeyGames/gamemaker-project-template",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [
+        "refs/heads/feature/**",
+        "refs/heads/hotfix/**"
+      ],
+      "include": [
+        "~ALL"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "non_fast_forward"
+    }
+  ],
+  "bypass_actors": []
+}

@@ -1,0 +1,16 @@
+{
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "stylelint.vscode-stylelint",
+        "formulahendry.htmlhint",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  },
+  "dockerComposeFile": "../docker-compose.yml",
+  "name": "LAMP Dev Environment",
+  "service": "webserver",
+  "workspaceFolder": "/var/www/html"
+}

@@ -1,0 +1,147 @@
+# Reusable workflow: the set of checks every feature/* branch must pass (GameMaker checks removed, web linters added).
+name: Preview Checks
+
+on:
+  workflow_call:
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install commitlint
+        run: npm ci
+
+      - name: Print commitlint version
+        run: npx commitlint --version
+
+      - name: Lint last commit (feature/*)
+        if: startsWith(github.ref_name, 'feature/')
+        run: npx commitlint --config ./.config/commitlint.config.mjs --last
+
+      - name: Lint commit range (hotfix/*)
+        if: startsWith(github.ref_name, 'hotfix/')
+        run: npx commitlint --config ./.config/commitlint.config.mjs --from "$(git merge-base HEAD origin/master)" --to HEAD
+
+      - name: Lint commit range (release/*)
+        if: startsWith(github.ref_name, 'release/')
+        run: npx commitlint --config ./.config/commitlint.config.mjs --from "$(git merge-base HEAD origin/develop)" --to HEAD
+
+  markdownlint:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install markdownlint-cli2
+        run: npm ci
+
+      - name: Run markdownlint-cli2
+        run: npx markdownlint-cli2 --config .config/.markdownlint-cli2.jsonc "**/*.md"
+
+  cspell:
+    environment: preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install cspell
+        run: npm ci
+
+      - name: Run cspell
+        run: npx cspell --config .config/cspell.json . --dot
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install shellcheck
+        run: npm ci
+
+      - name: Run shellcheck
+        run: find . -name "*.sh" -not -path "./node_modules/*" -print0 | xargs -0 npx shellcheck
+
+  eslint:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install eslint
+        run: npm ci
+
+      - name: Run eslint
+        run: npx eslint --config .config/eslint.config.js .
+
+  phpcs:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: phpcs
+
+      - name: Run PHP CodeSniffer
+        run: phpcs --standard=PSR12 .
+
+  stylelint:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stylelint
+        run: npx stylelint "**/*.css" "**/*.scss" --allow-empty-input
+
+  htmlhint:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run HTMLHint
+        run: npx htmlhint "**/*.html"

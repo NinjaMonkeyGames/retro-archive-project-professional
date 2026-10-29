@@ -1,0 +1,96 @@
+# Enforces the source-branch restrictions documented in CONTRIBUTING.md's
+# "Pull requests" section (e.g. "A pull request into master must come from
+# a release/* or hotfix/* branch") - previously policy on paper only, not
+# something CI or GitHub's own branch protection actually blocked. GitHub
+# has no native "restrict PR source branch by pattern" rule, so this is a
+# custom required status check, same pattern as pr-title-lint.yaml.
+#
+# Allowed (base <- head) pairings, from the Supporting branches table:
+#   master  <- release/*, hotfix/*
+#   develop <- feature/*, master (the sync-master-to-develop.yaml PR - see
+#              that file)
+# Anything targeting release/* or hotfix/*, or anything else targeting
+# master or develop, is rejected.
+#
+# release/* and hotfix/* are deliberately NOT allowed into develop
+# directly, even though they branch from/merge into develop's history
+# indirectly: sync-master-to-develop.yaml already carries every master
+# change into develop automatically, so a direct release/hotfix -> develop
+# PR would be a second, redundant path to the same result - and a real
+# risk of the same commits landing in develop twice via two different
+# routes if both get used.
+#
+# release/* and hotfix/* also now trigger this workflow as a base, purely
+# to REJECT: per CONTRIBUTING.md, they're cut once from develop/master and
+# only ever merge OUT (to master, via PR) - nothing is meant to merge INTO
+# them. Fixes while stabilizing go on as direct commits to the branch
+# itself, not a PR. Before this, a PR targeting release/* or hotfix/*
+# wasn't covered by this workflow's trigger at all, so a required
+# check-source-branch status on those branches would sit "Expected -
+# waiting" forever with no explanation, rather than actually failing with
+# a reason (this is exactly what happened with a real develop -> release/*
+# PR - it wasn't blocked, it was just never evaluated).
+#
+# Written as a whitelist (one case matching "base:head" against every
+# allowed pairing, single default-deny) rather than nested per-base
+# allow/reject blocks: the earlier version needed a separate explicit
+# reject arm for release/*/hotfix/* bases, and had no fallback at all for
+# a base matching none of the branches this file's author thought of
+# (harmless today only because the workflow's own trigger filter happens
+# to restrict BASE to these four cases first). A single default-deny
+# closes that gap for real instead of relying on the trigger to do it,
+# and means every valid pairing lives in exactly one place to audit.
+#
+# develop does not use a merge queue, so this only ever triggers on the
+# PR's own pull_request events - there is no separate merge_group case to
+# account for here.
+
+name: Branch Policy Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches:
+      - master
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce allowed source branch for the target
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # The whitelist: every (base, head) pairing this repo allows.
+          # Add a new valid pairing here and nowhere else.
+          case "$BASE:$HEAD" in
+            master:release/*|master:hotfix/*|develop:feature/*|develop:master)
+              echo "OK: '$HEAD' -> '$BASE'"
+              exit 0
+              ;;
+          esac
+
+          # Not in the whitelist above - exit 1 with a reason specific
+          # enough to point at CONTRIBUTING.md's actual rule, falling back
+          # to a generic message for a base this file doesn't otherwise
+          # recognise (defence in depth: the trigger's `branches:` filter
+          # is what actually keeps BASE to these four today).
+          case "$BASE" in
+            master)
+              echo "A pull request into master must come from a release/* or hotfix/* branch, not '$HEAD'. See CONTRIBUTING.md." >&2
+              ;;
+            develop)
+              echo "A pull request into develop must come from feature/* or master (the automated sync PR), not '$HEAD'. See CONTRIBUTING.md." >&2
+              ;;
+            release/*|hotfix/*)
+              echo "Pull requests into '$BASE' are not part of this workflow: release/* and hotfix/* branches only ever merge OUT (to master), never receive a merge IN. Push fixes directly to the branch instead, or close this PR. See CONTRIBUTING.md." >&2
+              ;;
+            *)
+              echo "Pull requests into '$BASE' are not covered by this branch policy. See CONTRIBUTING.md." >&2
+              ;;
+          esac
+          exit 1
