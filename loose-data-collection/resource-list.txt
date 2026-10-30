@@ -6,3 +6,10 @@
 - https://archive.org/details/ps3-game-updates_202207 | Contains Some PS3 Updates.
 - https://www.superpsx.com      | Contains a bunch of Playstation content including games and DLC.
 - http://ps3.aldostools.org     | Playstation community portal.
+
+# Link Entry list
+
+- https://serialstation.com    site.
+    - This is better than moby for PSN content, moby is more complete over all but lacks PSN content. 
+- https://retroachievements.org
+- https://www.mobygames.com     

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/sql-connect.php';
-require_once __DIR__ . '/db-actions.php';
+require_once __DIR__ . '/build-db.php';
 
 $pdo = getDbConnection();
 if (!$pdo) {
@@ -13,23 +13,19 @@ if (!$pdo) {
 $actionMessage = null;
 $actionSuccess = null;
 
-// Handle form actions
 if (isset($_POST['run_migration'])) {
     $actionSuccess = runDatabaseMigration($pdo);
     $actionMessage = $actionSuccess
         ? "Database successfully migrated and seeded from JSON."
         : "Migration failed. Check database server or seed file syntax.";
-} elseif (isset($_POST['save_to_file'])) {
-    downloadDatabaseFile($pdo);
 }
 
 $games = [];
 $checkCol = 0;
 
 try {
-    $checkCol = $pdo->query(
-        "SHOW COLUMNS FROM games LIKE 'media_id'"
-    )->rowCount();
+    $tableCheck = $pdo->query("SHOW TABLES LIKE 'links'");
+    $checkCol = $tableCheck->rowCount();
 
     if ($checkCol > 0) {
         $stmt = $pdo->query("
@@ -51,30 +47,24 @@ try {
             LEFT JOIN statuses s ON g.status_id = s.status_id
             ORDER BY g.game_id ASC
         ");
-    } else {
-        $stmt = $pdo->query("
-            SELECT g.*, 
-                   f.franchise_name, 
-                   o.origin_code, 
-                   o.origin_name,
-                   NULL as media_code,
-                   NULL as media_name,
-                   NULL as genre_name,
-                   NULL as license_code,
-                   NULL as status_code
-            FROM games g 
-            LEFT JOIN franchises f ON g.franchise_id = f.franchise_id
-            LEFT JOIN origins o ON g.origin_id = o.origin_id
-            ORDER BY g.game_id ASC
-        ");
+        $games = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // JOIN with link_types and affiliates lookup tables
+        foreach ($games as &$game) {
+            $linkStmt = $pdo->prepare("
+                SELECT l.url, lt.type_name, a.affiliate_name 
+                FROM links l
+                JOIN link_types lt ON l.type_id = lt.type_id
+                JOIN affiliates a ON l.affiliate_id = a.affiliate_id
+                WHERE l.game_id = ?
+            ");
+            $linkStmt->execute([$game['game_id']]);
+            $game['links'] = $linkStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        unset($game);
     }
-    $games = $stmt->fetchAll();
 } catch (PDOException $e) {
-    if ($e->getCode() === '42S02') {
-        $checkCol = 0; // Tables not created yet
-    } else {
-        throw $e;
-    }
+    $checkCol = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -88,20 +78,14 @@ try {
     <div class="header-container">
         <div>
             <h1>Master IP Catalog</h1>
-            <p>Museum-grade preservation index with fully 
-               normalized lookup tables.</p>
+            <p>Museum-grade preservation index with double-normalized 
+               links (types & affiliates).</p>
         </div>
         <div class="action-buttons">
             <form method="POST" style="margin: 0;">
                 <button type="submit" name="run_migration" 
                         class="btn-build">
                     ⚡ Run DB Build & Migration
-                </button>
-            </form>
-            <form method="POST" style="margin: 0;">
-                <button type="submit" name="save_to_file" 
-                        class="btn-save">
-                    💾 Download `game-data.json`
                 </button>
             </form>
         </div>
@@ -130,7 +114,8 @@ try {
                 <th>Canonical Title</th>
                 <th>Franchise <span class="linked-field" 
                     title="Loaded via Foreign Key (franchise_id)">*</span></th>
-                <th>Wikidata QID</th>
+                <th>Archival Links <span class="linked-field" 
+                    title="Normalized via link_types & affiliates tables">*</span></th>
                 <th>Origin <span class="linked-field" 
                     title="Loaded via Foreign Key (origin_id)">*</span></th>
                 <th>Media <span class="linked-field" 
@@ -163,21 +148,24 @@ try {
                     <td><?= htmlspecialchars((string)
                         ($row['franchise_name'] ?? 'N/A')) ?></td>
                     <td>
-                        <?php if (!empty($row['wikidata_qid'])) : ?>
-                            <a href="https://www.wikidata.org/wiki/<?=
-                               htmlspecialchars((string)
-                               $row['wikidata_qid']) ?>" 
-                               target="_blank"><?=
-                                htmlspecialchars((string)
-                                $row['wikidata_qid']) ?></a>
+                        <?php if (!empty($row['links'])) : ?>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <?php foreach ($row['links'] as $link) : ?>
+                                <a href="<?= htmlspecialchars((string) $link['url']) ?>" 
+                                   target="_blank" style="font-size: 11px; text-decoration: none; color: #2563eb;">
+                                   <strong>[<?= htmlspecialchars((string) $link['type_name']) ?>]</strong> 
+                                   <?= htmlspecialchars((string) $link['affiliate_name']) ?>
+                                </a>
+                            <?php endforeach; ?>
+                            </div>
                         <?php else : ?>
-                            <span style="color: #94a3b8;">Unlinked</span>
+                            <span style="color: #94a3b8; font-size: 11px;">No Links</span>
                         <?php endif; ?>
                     </td>
                     <td><?= htmlspecialchars((string)
                         ($row['origin_code'] ?? 'N/A')) ?></td>
                     <td><span class="badge"><?= htmlspecialchars((string)
-                        ($row['media_code'] ?? 'Pending')) ?></span></td>
+                        ($row['media_code'] ?? 'Unknown')) ?></span></td>
                     <td><?= htmlspecialchars((string)
                         $row['first_release_year']) ?></td>
                     <td><span class="badge"><?=

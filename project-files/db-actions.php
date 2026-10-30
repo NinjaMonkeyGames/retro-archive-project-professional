@@ -190,15 +190,18 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 11. Ingest Media Types (with fallback default if empty)
+        // 11. Ingest Media Types (with rich standard fallback defaults)
         $mediaTypes = $jsonData['media_types'] ?? [];
         if (empty($mediaTypes)) {
-            $mediaTypes = [[
-                'media_id'   => 1,
-                'media_code' => 'PENDING',
-                'media_name' => 'Unspecified Media',
-                'notes'      => 'Default fallback media type'
-            ]];
+            $mediaTypes = [
+                ['media_id' => 1, 'media_code' => 'CARTRIDGE', 'media_name' => 'ROM Cartridge', 'notes' => 'Solid-state mask ROM board'],
+                ['media_id' => 2, 'media_code' => 'TAPE', 'media_name' => 'Magnetic Cassette Tape', 'notes' => 'Compact cassette data storage'],
+                ['media_id' => 3, 'media_code' => 'CDROM', 'media_name' => 'CD-ROM', 'notes' => 'Compact Disc Read-Only Memory'],
+                ['media_id' => 4, 'media_code' => 'DVDROM', 'media_name' => 'DVD-ROM', 'notes' => 'Digital Versatile Disc Read-Only Memory'],
+                ['media_id' => 5, 'media_code' => 'BLURAY', 'media_name' => 'Blu-ray Disc', 'notes' => 'High-capacity optical disc format'],
+                ['media_id' => 6, 'media_code' => 'GDROM', 'media_name' => 'GD-ROM', 'notes' => 'Gigabyte Disc proprietary optical format'],
+                ['media_id' => 7, 'media_code' => 'UNKNOWN', 'media_name' => 'Unknown Media', 'notes' => 'Unspecified archival media type']
+            ];
         }
 
         $stmtMedia = $pdo->prepare("
@@ -209,8 +212,8 @@ function runDatabaseMigration(PDO $pdo): bool
         foreach ($mediaTypes as $media) {
             $stmtMedia->execute([
                 'media_id'   => $media['media_id'] ?? null,
-                'media_code' => $media['media_code'] ?? 'PENDING',
-                'media_name' => $media['media_name'] ?? 'Unspecified Media',
+                'media_code' => $media['media_code'] ?? 'UNKNOWN',
+                'media_name' => $media['media_name'] ?? 'Unknown Media',
                 'notes'      => $media['notes'] ?? null,
             ]);
         }
