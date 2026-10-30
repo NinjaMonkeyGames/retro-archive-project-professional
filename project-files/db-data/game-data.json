@@ -1,95 +1,56 @@
 {
-  "affiliates": [
+  "origins": [
     {
-      "affiliate_code": "MOBYGAMES",
-      "affiliate_id": 1,
-      "affiliate_name": "MobyGames",
-      "base_url": "https://www.mobygames.com"
-    },
+      "origin_id": 1,
+      "origin_code": "JPN",
+      "origin_name": "Japan",
+      "flag_link": "https://flagcdn.com/w40/jp.png"
+    }
+  ],
+  "vendors": [
     {
-      "affiliate_code": "RETROACHIEVEMENTS",
-      "affiliate_id": 2,
-      "affiliate_name": "RetroAchievements",
-      "base_url": "https://retroachievements.org"
-    },
+      "vendor_id": 1,
+      "vendor_code": "SEGA",
+      "vendor_name": "Sega Enterprises, Ltd.",
+      "country_code": "JPN"
+    }
+  ],
+  "media_types": [
     {
-      "affiliate_code": "SERIAL_STATION",
-      "affiliate_id": 3,
-      "affiliate_name": "Serial Station",
-      "base_url": "https://serialstation.com"
+      "media_id": 1,
+      "media_code": "CARTRIDGE",
+      "media_name": "ROM Cartridge",
+      "notes": "Solid-state mask ROM board"
+    }
+  ],
+  "platforms": [
+    {
+      "platform_id": 1,
+      "vendor_id": 1,
+      "media_id": 1,
+      "platform_code": "GENESIS",
+      "platform_name": "Sega Genesis / Mega Drive",
+      "generation": 16,
+      "release_year": 1988
+    }
+  ],
+  "studios": [
+    {
+      "studio_id": 1,
+      "studio_code": "SONIC_TEAM",
+      "studio_name": "Sonic Team",
+      "country_code": "JPN",
+      "founded_year": 1990,
+      "notes": "Internal development studio for Sega."
     }
   ],
   "franchises": [
     {
       "franchise_id": 1,
+      "studio_id": 1,
       "franchise_name": "Sonic the Hedgehog",
       "inception_year": 1991,
-      "notes": "Sega flagship platformer franchise.",
-      "original_creator": "Sonic Team"
-    },
-    {
-      "franchise_id": 2,
-      "franchise_name": "Lemmings",
-      "inception_year": 1991,
-      "notes": "Classic puzzle-strategy franchise.",
-      "original_creator": "DMA Design"
-    }
-  ],
-  "games": [
-    {
-      "canonical_title": "Sonic the Hedgehog",
-      "data_source": "manual",
-      "first_release_year": 1991,
-      "franchise_id": 1,
-      "game_id": 1,
-      "genre_id": 1,
-      "license_id": 1,
-      "links": [
-        {
-          "affiliate_id": 1,
-          "type_id": 5,
-          "url": "https://www.mobygames.com/game/704/sonic-the-hedgehog/"
-        },
-        {
-          "affiliate_id": 2,
-          "type_id": 1,
-          "url": "https://retroachievements.org/game/1"
-        },
-        {
-          "affiliate_id": 3,
-          "type_id": 3,
-          "url": "https://serialstation.com/games/sonic-the-hedgehog"
-        }
-      ],
-      "media_id": 1,
-      "notes": "Inaugural 16-bit high-speed platformer.",
-      "origin_id": 1,
-      "status_id": 1
-    },
-    {
-      "canonical_title": "Lemmings",
-      "data_source": "manual",
-      "first_release_year": 1991,
-      "franchise_id": 2,
-      "game_id": 2,
-      "genre_id": 2,
-      "license_id": 1,
-      "links": [
-        {
-          "affiliate_id": 1,
-          "type_id": 5,
-          "url": "https://www.mobygames.com/game/467/lemmings/"
-        },
-        {
-          "affiliate_id": 2,
-          "type_id": 1,
-          "url": "https://retroachievements.org/game/1342"
-        }
-      ],
-      "media_id": 2,
-      "notes": "Guide suicidal critters safely to the exit.",
-      "origin_id": 2,
-      "status_id": 1
+      "notes": "Sega flagship platformer franchise."
     }
   ],
   "genres": [
@@ -97,85 +58,73 @@
       "genre_id": 1,
       "genre_name": "Platformer",
       "notes": "Action-oriented jumping and navigation."
-    },
-    {
-      "genre_id": 2,
-      "genre_name": "Puzzle-Strategy",
-      "notes": "Logical routing and resource management."
     }
   ],
   "licenses": [
     {
-      "license_code": "PROPRIETARY",
       "license_id": 1,
+      "license_code": "PROPRIETARY",
       "license_name": "Closed Source Commercial Rights"
-    }
-  ],
-  "link_types": [
-    {
-      "notes": "Links to achievement and trophy trackers",
-      "type_code": "TROPHIES",
-      "type_id": 1,
-      "type_name": "Trophies / Achievements"
-    },
-    {
-      "notes": "Scanned instruction booklets and guides",
-      "type_code": "MANUALS",
-      "type_id": 2,
-      "type_name": "Documentation & Manuals"
-    },
-    {
-      "notes": "Raw game dumps and verification links",
-      "type_code": "ROMS",
-      "type_id": 3,
-      "type_name": "ROMs & Images"
-    },
-    {
-      "notes": "Walkthroughs and cheat codes",
-      "type_code": "CHEATS",
-      "type_id": 4,
-      "type_name": "Cheats & Strategy"
-    },
-    {
-      "notes": "General metadata entry in museum databases",
-      "type_code": "DATABASE",
-      "type_id": 5,
-      "type_name": "Archival Database"
-    }
-  ],
-  "media_types": [
-    {
-      "media_code": "CARTRIDGE",
-      "media_id": 1,
-      "media_name": "ROM Cartridge",
-      "notes": "Solid-state mask ROM board"
-    },
-    {
-      "media_code": "TAPE",
-      "media_id": 2,
-      "media_name": "Magnetic Cassette Tape",
-      "notes": "Compact cassette data storage"
-    }
-  ],
-  "origins": [
-    {
-      "flag_link": "https://flagcdn.com/w40/jp.png",
-      "origin_code": "JPN",
-      "origin_id": 1,
-      "origin_name": "Japan"
-    },
-    {
-      "flag_link": "https://flagcdn.com/w40/gb.png",
-      "origin_code": "GBR",
-      "origin_id": 2,
-      "origin_name": "United Kingdom"
     }
   ],
   "statuses": [
     {
-      "status_code": "ARCHIVED",
       "status_id": 1,
+      "status_code": "ARCHIVED",
       "status_name": "Fully Preserved and Verified"
+    }
+  ],
+  "link_types": [
+    {
+      "type_id": 1,
+      "type_code": "TROPHIES",
+      "type_name": "Trophies / Achievements"
+    },
+    {
+      "type_id": 5,
+      "type_code": "DATABASE",
+      "type_name": "Archival Database"
+    }
+  ],
+  "affiliates": [
+    {
+      "affiliate_id": 1,
+      "affiliate_code": "MOBYGAMES",
+      "affiliate_name": "MobyGames",
+      "base_url": "https://www.mobygames.com"
+    },
+    {
+      "affiliate_id": 2,
+      "affiliate_code": "RETROACHIEVEMENTS",
+      "affiliate_name": "RetroAchievements",
+      "base_url": "https://retroachievements.org"
+    }
+  ],
+  "games": [
+    {
+      "game_id": 1,
+      "franchise_id": 1,
+      "origin_id": 1,
+      "platform_id": 1,
+      "genre_id": 1,
+      "license_id": 1,
+      "status_id": 1,
+      "canonical_title": "Sonic the Hedgehog",
+      "first_release_year": 1991,
+      "data_source": "manual",
+      "notes": "Inaugural 16-bit high-speed platformer.",
+      "links": [
+        {
+          "type_id": 5,
+          "affiliate_id": 1,
+          "url": "https://www.mobygames.com/game/704/sonic-the-hedgehog/"
+        },
+        {
+          "type_id": 1,
+          "affiliate_id": 2,
+          "url": "https://retroachievements.org/game/1"
+        }
+      ]
     }
   ]
 }
