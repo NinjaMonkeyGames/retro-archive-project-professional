@@ -15,7 +15,7 @@ $dbDataPath = __DIR__ . '/db-data/game-data.json';
 if (!file_exists($dbDataPath)) {
     die("<h1>Error: Database Seed File Missing</h1>" .
         "<p>Could not locate <code>game-data.json</code> " .
-        "at expected path: <code>" . 
+        "at expected path: <code>" .
         htmlspecialchars($dbDataPath) . "</code></p>");
 }
 
@@ -23,7 +23,7 @@ $jsonRaw = file_get_contents($dbDataPath);
 $jsonData = json_decode($jsonRaw, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
-    die("<h1>Error: Invalid JSON Syntax</h1><p>" . 
+    die("<h1>Error: Invalid JSON Syntax</h1><p>" .
         htmlspecialchars(json_last_error_msg()) . "</p>");
 }
 
@@ -251,6 +251,6 @@ try {
          "<code>game-data.json</code>.</p>";
     echo "<p><a href='index.php'>View Master Catalog</a></p>";
 } catch (Exception $e) {
-    die("<h1>Migration Failed</h1><p>" . 
+    die("<h1>Migration Failed</h1><p>" .
         htmlspecialchars($e->getMessage()) . "</p>");
 }

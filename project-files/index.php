@@ -3,10 +3,24 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/sql-connect.php';
+require_once __DIR__ . '/db-actions.php';
 
 $pdo = getDbConnection();
 if (!$pdo) {
     die("<h1>Database Connection Failed</h1>");
+}
+
+$actionMessage = null;
+$actionSuccess = null;
+
+// Handle form actions
+if (isset($_POST['run_migration'])) {
+    $actionSuccess = runDatabaseMigration($pdo);
+    $actionMessage = $actionSuccess
+        ? "Database successfully migrated and seeded from JSON."
+        : "Migration failed. Check database server or seed file syntax.";
+} elseif (isset($_POST['save_to_file'])) {
+    downloadDatabaseFile($pdo);
 }
 
 $games = [];
@@ -16,7 +30,7 @@ try {
     $checkCol = $pdo->query(
         "SHOW COLUMNS FROM games LIKE 'status_id'"
     )->rowCount();
-    
+
     if ($checkCol > 0) {
         $stmt = $pdo->query("
             SELECT g.*, 
@@ -52,11 +66,10 @@ try {
     $games = $stmt->fetchAll();
 } catch (PDOException $e) {
     if ($e->getCode() === '42S02') {
-        die("<h1>Tables Not Found</h1><p>Database tables have " .
-            "not been created yet. Please run " .
-            "<a href='build-db.php'>build-db.php</a> first.</p>");
+        $checkCol = 0; // Tables not created yet
+    } else {
+        throw $e;
     }
-    throw $e;
 }
 ?>
 <!DOCTYPE html>
@@ -64,49 +77,44 @@ try {
 <head>
     <meta charset="UTF-8">
     <title>Retro Archive - Master IP Catalog</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 
-                         "Segoe UI", Roboto, sans-serif; 
-            margin: 2rem; background: #f8fafc; color: #1e293b; 
-        }
-        h1 { margin-bottom: 0.5rem; }
-        p { color: #64748b; margin-top: 0; }
-        table { 
-            width: 100%; border-collapse: collapse; background: #ffffff; 
-            margin-top: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-            border-radius: 8px; overflow: hidden; 
-        }
-        th, td { 
-            padding: 12px 16px; border-bottom: 1px solid #e2e8f0; 
-            text-align: left; font-size: 13px; 
-        }
-        th { background-color: #0f172a; color: #f8fafc; font-weight: 600; }
-        tr:hover { background-color: #f1f5f9; }
-        .badge { 
-            display: inline-block; padding: 2px 6px; border-radius: 4px; 
-            font-size: 10px; font-weight: 700; background: #e2e8f0; 
-            color: #475569; text-transform: uppercase; 
-        }
-        .linked-field { color: #ef4444; font-weight: bold; cursor: help; }
-        a { color: #2563eb; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .notice { 
-            background: #fef3c7; border: 1px solid #f59e0b; 
-            padding: 10px 15px; border-radius: 6px; margin-bottom: 1rem; 
-            color: #92400e; font-size: 13px; 
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Master IP Catalog</h1>
-    <p>Museum-grade preservation index with fully normalized lookup tables.</p>
+    <div class="header-container">
+        <div>
+            <h1>Master IP Catalog</h1>
+            <p>Museum-grade preservation index with fully 
+               normalized lookup tables.</p>
+        </div>
+        <div class="action-buttons">
+            <form method="POST" style="margin: 0;">
+                <button type="submit" name="run_migration" 
+                        class="btn-build">
+                    ⚡ Run DB Build & Migration
+                </button>
+            </form>
+            <form method="POST" style="margin: 0;">
+                <button type="submit" name="save_to_file" 
+                        class="btn-save">
+                    💾 Download `game-data.json`
+                </button>
+            </form>
+        </div>
+    </div>
 
-    <?php if ($checkCol === 0): ?>
+    <?php if ($actionMessage !== null) : ?>
+        <div class="<?= $actionSuccess ? 'alert-success'
+                                      : 'alert-error' ?>">
+            <strong><?= $actionSuccess ? 'Success:' : 'Error:' ?></strong> 
+            <?= htmlspecialchars($actionMessage) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($checkCol === 0 && $actionMessage === null) : ?>
         <div class="notice">
-            <strong>Notice:</strong> Database schema is out of date. 
-            Please run <a href="build-db.php">build-db.php</a> to apply 
-            the latest normalized table columns.
+            <strong>Notice:</strong> Database tables have not been 
+            created or are out of date. Click the 
+            <strong>Run DB Build & Migration</strong> button above.
         </div>
     <?php endif; ?>
 
@@ -132,28 +140,53 @@ try {
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($games as $row): ?>
+            <?php if (empty($games)) : ?>
             <tr>
-                <td><?= htmlspecialchars((string) $row['game_id']) ?></td>
-                <td><strong><?= htmlspecialchars((string) $row['canonical_title']) ?></strong></td>
-                <td><?= htmlspecialchars((string) ($row['franchise_name'] ?? 'N/A')) ?></td>
-                <td>
-                    <?php if (!empty($row['wikidata_qid'])): ?>
-                        <a href="https://www.wikidata.org/wiki/<?= htmlspecialchars((string) $row['wikidata_qid']) ?>" 
-                           target="_blank"><?= htmlspecialchars((string) $row['wikidata_qid']) ?></a>
-                    <?php else: ?>
-                        <span style="color: #94a3b8;">Unlinked</span>
-                    <?php endif; ?>
+                <td colspan="11" style="text-align: center; 
+                                       color: #64748b; padding: 2rem;">
+                    No records found. Run the migration to 
+                    populate the database.
                 </td>
-                <td><?= htmlspecialchars((string) ($row['origin_code'] ?? 'N/A')) ?></td>
-                <td><?= htmlspecialchars((string) $row['original_media_type']) ?></td>
-                <td><?= htmlspecialchars((string) $row['first_release_year']) ?></td>
-                <td><span class="badge"><?= htmlspecialchars((string) ($row['license_code'] ?? 'Pending')) ?></span></td>
-                <td><?= htmlspecialchars((string) ($row['genre_name'] ?? 'Pending')) ?></td>
-                <td><span class="badge"><?= htmlspecialchars((string) ($row['status_code'] ?? 'Pending')) ?></span></td>
-                <td><small><?= htmlspecialchars((string) $row['notes']) ?></small></td>
             </tr>
-            <?php endforeach; ?>
+            <?php else : ?>
+                <?php foreach ($games as $row) : ?>
+                <tr>
+                    <td><?= htmlspecialchars((string) $row['game_id']) ?></td>
+                    <td><strong><?= htmlspecialchars((string)
+                        $row['canonical_title']) ?></strong></td>
+                    <td><?= htmlspecialchars((string)
+                        ($row['franchise_name'] ?? 'N/A')) ?></td>
+                    <td>
+                        <?php if (!empty($row['wikidata_qid'])) : ?>
+                            <a href="https://www.wikidata.org/wiki/<?=
+                               htmlspecialchars((string)
+                               $row['wikidata_qid']) ?>" 
+                               target="_blank"><?=
+                                htmlspecialchars((string)
+                                $row['wikidata_qid']) ?></a>
+                        <?php else : ?>
+                            <span style="color: #94a3b8;">Unlinked</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?= htmlspecialchars((string)
+                        ($row['origin_code'] ?? 'N/A')) ?></td>
+                    <td><?= htmlspecialchars((string)
+                        $row['original_media_type']) ?></td>
+                    <td><?= htmlspecialchars((string)
+                        $row['first_release_year']) ?></td>
+                    <td><span class="badge"><?=
+                        htmlspecialchars((string)
+                        ($row['license_code'] ?? 'Pending')) ?></span></td>
+                    <td><?= htmlspecialchars((string)
+                        ($row['genre_name'] ?? 'Pending')) ?></td>
+                    <td><span class="badge"><?=
+                        htmlspecialchars((string)
+                        ($row['status_code'] ?? 'Pending')) ?></span></td>
+                    <td><small><?= htmlspecialchars((string)
+                        $row['notes']) ?></small></td>
+                </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </tbody>
     </table>
 </body>
