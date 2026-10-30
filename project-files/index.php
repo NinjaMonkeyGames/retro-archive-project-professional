@@ -28,7 +28,7 @@ $checkCol = 0;
 
 try {
     $checkCol = $pdo->query(
-        "SHOW COLUMNS FROM games LIKE 'status_id'"
+        "SHOW COLUMNS FROM games LIKE 'media_id'"
     )->rowCount();
 
     if ($checkCol > 0) {
@@ -37,12 +37,15 @@ try {
                    f.franchise_name, 
                    o.origin_code, 
                    o.origin_name, 
+                   m.media_code,
+                   m.media_name,
                    ge.genre_name, 
                    l.license_code,
                    s.status_code 
             FROM games g 
             LEFT JOIN franchises f ON g.franchise_id = f.franchise_id
             LEFT JOIN origins o ON g.origin_id = o.origin_id
+            LEFT JOIN media_types m ON g.media_id = m.media_id
             LEFT JOIN genres ge ON g.genre_id = ge.genre_id
             LEFT JOIN licenses l ON g.license_id = l.license_id
             LEFT JOIN statuses s ON g.status_id = s.status_id
@@ -54,6 +57,8 @@ try {
                    f.franchise_name, 
                    o.origin_code, 
                    o.origin_name,
+                   NULL as media_code,
+                   NULL as media_name,
                    NULL as genre_name,
                    NULL as license_code,
                    NULL as status_code
@@ -128,7 +133,8 @@ try {
                 <th>Wikidata QID</th>
                 <th>Origin <span class="linked-field" 
                     title="Loaded via Foreign Key (origin_id)">*</span></th>
-                <th>Media</th>
+                <th>Media <span class="linked-field" 
+                    title="Loaded via Foreign Key (media_id)">*</span></th>
                 <th>Year</th>
                 <th>License <span class="linked-field" 
                     title="Loaded via Foreign Key (license_id)">*</span></th>
@@ -170,8 +176,8 @@ try {
                     </td>
                     <td><?= htmlspecialchars((string)
                         ($row['origin_code'] ?? 'N/A')) ?></td>
-                    <td><?= htmlspecialchars((string)
-                        $row['original_media_type']) ?></td>
+                    <td><span class="badge"><?= htmlspecialchars((string)
+                        ($row['media_code'] ?? 'Pending')) ?></span></td>
                     <td><?= htmlspecialchars((string)
                         $row['first_release_year']) ?></td>
                     <td><span class="badge"><?=

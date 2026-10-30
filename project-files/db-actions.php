@@ -51,7 +51,20 @@ function runDatabaseMigration(PDO $pdo): bool
               COLLATE=utf8mb4_unicode_ci;
         ");
 
-        // 3. Create Genres Table
+        // 3. Create Media Types Table
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS media_types (
+                media_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                media_code VARCHAR(50) NOT NULL UNIQUE,
+                media_name VARCHAR(100) NOT NULL,
+                notes TEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_media_code (media_code)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 
+              COLLATE=utf8mb4_unicode_ci;
+        ");
+
+        // 4. Create Genres Table
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS genres (
                 genre_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +76,7 @@ function runDatabaseMigration(PDO $pdo): bool
               COLLATE=utf8mb4_unicode_ci;
         ");
 
-        // 4. Create Licenses Table
+        // 5. Create Licenses Table
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS licenses (
                 license_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -75,7 +88,7 @@ function runDatabaseMigration(PDO $pdo): bool
               COLLATE=utf8mb4_unicode_ci;
         ");
 
-        // 5. Create Statuses Table
+        // 6. Create Statuses Table
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS statuses (
                 status_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -87,18 +100,18 @@ function runDatabaseMigration(PDO $pdo): bool
               COLLATE=utf8mb4_unicode_ci;
         ");
 
-        // 6. Create Master Games Table
+        // 7. Create Master Games Table
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS games (
                 game_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 franchise_id BIGINT UNSIGNED DEFAULT NULL,
                 origin_id BIGINT UNSIGNED DEFAULT NULL,
+                media_id BIGINT UNSIGNED DEFAULT NULL,
                 genre_id BIGINT UNSIGNED DEFAULT NULL,
                 license_id BIGINT UNSIGNED DEFAULT NULL,
                 status_id BIGINT UNSIGNED DEFAULT NULL,
                 wikidata_qid VARCHAR(20) UNIQUE DEFAULT NULL,
                 canonical_title VARCHAR(255) NOT NULL,
-                original_media_type VARCHAR(50) DEFAULT NULL,
                 first_release_year SMALLINT UNSIGNED,
                 data_source VARCHAR(100) DEFAULT 'manual',
                 notes TEXT DEFAULT NULL,
@@ -109,6 +122,8 @@ function runDatabaseMigration(PDO $pdo): bool
                     REFERENCES franchises(franchise_id) ON DELETE SET NULL,
                 FOREIGN KEY (origin_id) 
                     REFERENCES origins(origin_id) ON DELETE SET NULL,
+                FOREIGN KEY (media_id) 
+                    REFERENCES media_types(media_id) ON DELETE SET NULL,
                 FOREIGN KEY (genre_id) 
                     REFERENCES genres(genre_id) ON DELETE SET NULL,
                 FOREIGN KEY (license_id) 
@@ -119,6 +134,7 @@ function runDatabaseMigration(PDO $pdo): bool
                 INDEX idx_canonical_title (canonical_title),
                 INDEX idx_franchise (franchise_id),
                 INDEX idx_origin (origin_id),
+                INDEX idx_media (media_id),
                 INDEX idx_genre (genre_id),
                 INDEX idx_license (license_id),
                 INDEX idx_status (status_id)
@@ -126,56 +142,20 @@ function runDatabaseMigration(PDO $pdo): bool
               COLLATE=utf8mb4_unicode_ci;
         ");
 
-        // 7. Safety checks: ensure columns exist on pre-existing tables
-        $colCheckOrigin = $pdo->query(
-            "SHOW COLUMNS FROM games LIKE 'origin_id'"
+        // 8. Safety checks for existing columns/tables
+        $colCheckMedia = $pdo->query(
+            "SHOW COLUMNS FROM games LIKE 'media_id'"
         );
-        if ($colCheckOrigin->rowCount() === 0) {
+        if ($colCheckMedia->rowCount() === 0) {
             $pdo->exec("
                 ALTER TABLE games 
-                ADD COLUMN origin_id BIGINT UNSIGNED DEFAULT NULL 
-                AFTER franchise_id
-            ");
-            $pdo->exec("ALTER TABLE games ADD INDEX idx_origin (origin_id)");
-        }
-
-        $colCheckGenre = $pdo->query(
-            "SHOW COLUMNS FROM games LIKE 'genre_id'"
-        );
-        if ($colCheckGenre->rowCount() === 0) {
-            $pdo->exec("
-                ALTER TABLE games 
-                ADD COLUMN genre_id BIGINT UNSIGNED DEFAULT NULL 
+                ADD COLUMN media_id BIGINT UNSIGNED DEFAULT NULL 
                 AFTER origin_id
             ");
-            $pdo->exec("ALTER TABLE games ADD INDEX idx_genre (genre_id)");
+            $pdo->exec("ALTER TABLE games ADD INDEX idx_media (media_id)");
         }
 
-        $colCheckLicense = $pdo->query(
-            "SHOW COLUMNS FROM games LIKE 'license_id'"
-        );
-        if ($colCheckLicense->rowCount() === 0) {
-            $pdo->exec("
-                ALTER TABLE games 
-                ADD COLUMN license_id BIGINT UNSIGNED DEFAULT NULL 
-                AFTER genre_id
-            ");
-            $pdo->exec("ALTER TABLE games ADD INDEX idx_license (license_id)");
-        }
-
-        $colCheckStatus = $pdo->query(
-            "SHOW COLUMNS FROM games LIKE 'status_id'"
-        );
-        if ($colCheckStatus->rowCount() === 0) {
-            $pdo->exec("
-                ALTER TABLE games 
-                ADD COLUMN status_id BIGINT UNSIGNED DEFAULT NULL 
-                AFTER license_id
-            ");
-            $pdo->exec("ALTER TABLE games ADD INDEX idx_status (status_id)");
-        }
-
-        // 8. Ingest Origins
+        // 9. Ingest Origins
         $stmtOrigin = $pdo->prepare("
             INSERT INTO origins (origin_id, origin_code, 
                                  origin_name, flag_link)
@@ -192,7 +172,7 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 9. Ingest Franchises
+        // 10. Ingest Franchises
         $stmtFranchise = $pdo->prepare("
             INSERT INTO franchises (franchise_id, franchise_name, 
                                     original_creator, inception_year, notes)
@@ -210,7 +190,32 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 10. Ingest Genres
+        // 11. Ingest Media Types (with fallback default if empty)
+        $mediaTypes = $jsonData['media_types'] ?? [];
+        if (empty($mediaTypes)) {
+            $mediaTypes = [[
+                'media_id'   => 1,
+                'media_code' => 'PENDING',
+                'media_name' => 'Unspecified Media',
+                'notes'      => 'Default fallback media type'
+            ]];
+        }
+
+        $stmtMedia = $pdo->prepare("
+            INSERT INTO media_types (media_id, media_code, media_name, notes)
+            VALUES (:media_id, :media_code, :media_name, :notes)
+            ON DUPLICATE KEY UPDATE media_name = VALUES(media_name)
+        ");
+        foreach ($mediaTypes as $media) {
+            $stmtMedia->execute([
+                'media_id'   => $media['media_id'] ?? null,
+                'media_code' => $media['media_code'] ?? 'PENDING',
+                'media_name' => $media['media_name'] ?? 'Unspecified Media',
+                'notes'      => $media['notes'] ?? null,
+            ]);
+        }
+
+        // 12. Ingest Genres
         $stmtGenre = $pdo->prepare("
             INSERT INTO genres (genre_id, genre_name, notes)
             VALUES (:genre_id, :genre_name, :notes)
@@ -224,7 +229,7 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 11. Ingest Licenses
+        // 13. Ingest Licenses
         $stmtLicense = $pdo->prepare("
             INSERT INTO licenses (license_id, license_code, license_name)
             VALUES (:license_id, :license_code, :license_name)
@@ -238,7 +243,7 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 12. Ingest Statuses
+        // 14. Ingest Statuses
         $stmtStatus = $pdo->prepare("
             INSERT INTO statuses (status_id, status_code, status_name)
             VALUES (:status_id, :status_code, :status_name)
@@ -252,18 +257,16 @@ function runDatabaseMigration(PDO $pdo): bool
             ]);
         }
 
-        // 13. Ingest Games
+        // 15. Ingest Games
         $stmtGame = $pdo->prepare("
             INSERT INTO games (
-                game_id, franchise_id, origin_id, genre_id, 
+                game_id, franchise_id, origin_id, media_id, genre_id, 
                 license_id, status_id, wikidata_qid, canonical_title, 
-                original_media_type, first_release_year, 
-                data_source, notes
+                first_release_year, data_source, notes
             ) VALUES (
-                :game_id, :franchise_id, :origin_id, :genre_id, 
+                :game_id, :franchise_id, :origin_id, :media_id, :genre_id, 
                 :license_id, :status_id, :wikidata_qid, :canonical_title, 
-                :original_media_type, :first_release_year, 
-                :data_source, :notes
+                :first_release_year, :data_source, :notes
             )
             ON DUPLICATE KEY UPDATE canonical_title = VALUES(canonical_title)
         ");
@@ -272,12 +275,12 @@ function runDatabaseMigration(PDO $pdo): bool
                 'game_id'             => $game['game_id'] ?? null,
                 'franchise_id'        => $game['franchise_id'] ?? null,
                 'origin_id'           => $game['origin_id'] ?? null,
+                'media_id'            => $game['media_id'] ?? null,
                 'genre_id'            => $game['genre_id'] ?? null,
                 'license_id'          => $game['license_id'] ?? null,
                 'status_id'           => $game['status_id'] ?? null,
                 'wikidata_qid'        => $game['wikidata_qid'] ?? null,
                 'canonical_title'     => $game['canonical_title'] ?? '',
-                'original_media_type' => $game['original_media_type'] ?? null,
                 'first_release_year'  => $game['first_release_year'] ?? null,
                 'data_source'         => $game['data_source'] ?? 'manual',
                 'notes'               => $game['notes'] ?? null,
@@ -300,22 +303,25 @@ function downloadDatabaseFile(PDO $pdo): void
 {
     try {
         $exportData = [
-            'franchises' => $pdo->query(
+            'franchises'  => $pdo->query(
                 "SELECT * FROM franchises ORDER BY franchise_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
-            'genres'     => $pdo->query(
+            'media_types' => $pdo->query(
+                "SELECT * FROM media_types ORDER BY media_id ASC"
+            )->fetchAll(PDO::FETCH_ASSOC),
+            'genres'      => $pdo->query(
                 "SELECT * FROM genres ORDER BY genre_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
-            'licenses'   => $pdo->query(
+            'licenses'    => $pdo->query(
                 "SELECT * FROM licenses ORDER BY license_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
-            'origins'    => $pdo->query(
+            'origins'     => $pdo->query(
                 "SELECT * FROM origins ORDER BY origin_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
-            'statuses'   => $pdo->query(
+            'statuses'    => $pdo->query(
                 "SELECT * FROM statuses ORDER BY status_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
-            'games'      => $pdo->query(
+            'games'       => $pdo->query(
                 "SELECT * FROM games ORDER BY game_id ASC"
             )->fetchAll(PDO::FETCH_ASSOC),
         ];
