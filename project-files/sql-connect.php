@@ -22,7 +22,7 @@ function getDbConnection(): ?PDO
     try {
         return new PDO($dsn, $user, $pass, $options);
     } catch (PDOException $e) {
-        // Return null or log error so build-db.php / index.php can catch it
+        error_log('DB connection failed: ' . $e->getMessage());
         return null;
     }
 }

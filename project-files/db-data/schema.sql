@@ -1,5 +1,5 @@
 -- -----------------------------------------------------------------------------
--- Retro Gaming Archive - Master IP Catalog Schema
+-- Retro Gaming Archive - Master IP Catalog Schema with Native Comments
 -- -----------------------------------------------------------------------------
 
 SET foreign_key_checks = 0;
@@ -30,7 +30,8 @@ CREATE TABLE origins (
         COMMENT 'Full localized country or region name',
     flag_link VARCHAR(500) DEFAULT NULL 
         COMMENT 'URL to territorial flag icon asset',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when origin record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. Vendors Table
@@ -38,12 +39,13 @@ CREATE TABLE vendors (
     vendor_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY 
         COMMENT 'Surrogate key for hardware manufacturer',
     vendor_code VARCHAR(50) NOT NULL UNIQUE 
-        COMMENT 'Short machine-readable vendor code',
+        COMMENT 'Short machine-readable vendor code (e.g. SEGA)',
     vendor_name VARCHAR(255) NOT NULL 
-        COMMENT 'Official corporate vendor name (e.g. Sega, Sony)',
+        COMMENT 'Official corporate vendor name',
     country_code VARCHAR(10) DEFAULT NULL 
         COMMENT 'HQ country origin code',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when vendor record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Media Types Table
@@ -56,7 +58,8 @@ CREATE TABLE media_types (
         COMMENT 'Human-readable media name',
     notes TEXT DEFAULT NULL 
         COMMENT 'Technical hardware medium details',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when media type record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. Platforms Table
@@ -75,7 +78,8 @@ CREATE TABLE platforms (
         COMMENT 'Console hardware bit/generation classification',
     release_year SMALLINT UNSIGNED DEFAULT NULL 
         COMMENT 'Original hardware commercial launch year',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when platform record was created',
     FOREIGN KEY (vendor_id) REFERENCES vendors(vendor_id) ON DELETE SET NULL,
     FOREIGN KEY (media_id) REFERENCES media_types(media_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -94,7 +98,8 @@ CREATE TABLE studios (
         COMMENT 'Year studio was established',
     notes TEXT DEFAULT NULL 
         COMMENT 'Historical studio background notes',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when studio record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 6. Franchises Table
@@ -109,7 +114,8 @@ CREATE TABLE franchises (
         COMMENT 'Year the franchise debuted',
     notes TEXT DEFAULT NULL 
         COMMENT 'Franchise background description',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when franchise record was created',
     FOREIGN KEY (studio_id) REFERENCES studios(studio_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -121,7 +127,8 @@ CREATE TABLE genres (
         COMMENT 'Official genre classification name',
     notes TEXT DEFAULT NULL 
         COMMENT 'Genre gameplay mechanics description',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when genre record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. Licenses Table
@@ -132,7 +139,8 @@ CREATE TABLE licenses (
         COMMENT 'Short license code',
     license_name VARCHAR(100) NOT NULL 
         COMMENT 'Full legal license description',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when license record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. Statuses Table
@@ -143,7 +151,8 @@ CREATE TABLE statuses (
         COMMENT 'Short status code',
     status_name VARCHAR(100) NOT NULL 
         COMMENT 'Detailed archival verification status',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when status record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 10. Link Types Lookup Table
@@ -156,7 +165,8 @@ CREATE TABLE link_types (
         COMMENT 'Human-readable reference category name',
     notes TEXT DEFAULT NULL 
         COMMENT 'Description of what this external link contains',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when link type record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 11. Affiliates Lookup Table
@@ -169,7 +179,8 @@ CREATE TABLE affiliates (
         COMMENT 'Official partner service name',
     base_url VARCHAR(500) DEFAULT NULL 
         COMMENT 'Base web domain URL for the affiliate',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when affiliate record was created'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 12. Master Games Table
@@ -196,8 +207,10 @@ CREATE TABLE games (
         COMMENT 'Data ingestion origin (e.g. manual, api, scraper)',
     notes TEXT DEFAULT NULL 
         COMMENT 'Curatorial archival notes and preservation remarks',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when master game record was created',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when master game record was last updated',
     FOREIGN KEY (franchise_id) REFERENCES franchises(franchise_id) ON DELETE SET NULL,
     FOREIGN KEY (origin_id) REFERENCES origins(origin_id) ON DELETE SET NULL,
     FOREIGN KEY (platform_id) REFERENCES platforms(platform_id) ON DELETE SET NULL,
@@ -218,7 +231,8 @@ CREATE TABLE links (
         COMMENT 'Foreign key linking reference to partner database',
     url VARCHAR(1000) NOT NULL 
         COMMENT 'Exact target URL pointing to external resource',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
+        COMMENT 'Timestamp when link reference record was created',
     UNIQUE KEY uk_game_link_type_aff (game_id, type_id, affiliate_id, url(255)),
     FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE,
     FOREIGN KEY (type_id) REFERENCES link_types(type_id) ON DELETE RESTRICT,
