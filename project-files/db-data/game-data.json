@@ -1,0 +1,105 @@
+{
+  "franchises": [
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "franchise_id": 1,
+      "franchise_name": "Puyo Puyo",
+      "inception_year": 1991,
+      "notes": "Classic tile-matching puzzle franchise created by Compile, originating from Madō Monogatari.",
+      "original_creator": "Compile"
+    }
+  ],
+  "games": [
+    {
+      "canonical_title": "Puyo Puyo",
+      "created_at": "2026-10-29 00:00:00",
+      "data_source": "wikidata_api",
+      "first_release_year": 1991,
+      "franchise_id": 1,
+      "game_id": 1,
+      "genre_id": 1,
+      "license_id": 1,
+      "notes": "Original Japanese release by Compile on MSX2 and Famicom Disk System.",
+      "origin_id": 1,
+      "original_media_type": "Cartridge",
+      "status_id": 1,
+      "wikidata_qid": "Q1371583"
+    },
+    {
+      "canonical_title": "Dr. Robotnik's Mean Bean Machine",
+      "created_at": "2026-10-29 00:00:00",
+      "data_source": "wikidata_api",
+      "first_release_year": 1993,
+      "franchise_id": 1,
+      "game_id": 2,
+      "genre_id": 1,
+      "license_id": 1,
+      "notes": "Western asset adaptation of Puyo Puyo themed around the Adventures of Sonic the Hedgehog cartoon.",
+      "origin_id": 2,
+      "original_media_type": "Cartridge",
+      "status_id": 1,
+      "wikidata_qid": "Q2362073"
+    },
+    {
+      "canonical_title": "Kirby's Avalanche",
+      "created_at": "2026-10-29 00:00:00",
+      "data_source": "wikidata_api",
+      "first_release_year": 1995,
+      "franchise_id": 1,
+      "game_id": 3,
+      "genre_id": 1,
+      "license_id": 1,
+      "notes": "Western SNES localization of Super Puyo Puyo featuring Nintendo's Kirby universe.",
+      "origin_id": 2,
+      "original_media_type": "Cartridge",
+      "status_id": 1,
+      "wikidata_qid": "Q2986962"
+    }
+  ],
+  "genres": [
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "genre_id": 1,
+      "genre_name": "Puzzle",
+      "notes": "Tile-matching and logic puzzle games."
+    }
+  ],
+  "licenses": [
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "license_code": "official",
+      "license_id": 1,
+      "license_name": "Official Release"
+    }
+  ],
+  "origins": [
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "flag_link": "https://flagcdn.com/jp.svg",
+      "origin_code": "JP",
+      "origin_id": 1,
+      "origin_name": "Japan"
+    },
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "flag_link": "https://flagcdn.com/us.svg",
+      "origin_code": "US",
+      "origin_id": 2,
+      "origin_name": "United States"
+    }
+  ],
+  "statuses": [
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "status_code": "verified",
+      "status_id": 1,
+      "status_name": "Verified Record"
+    },
+    {
+      "created_at": "2026-10-29 00:00:00",
+      "status_code": "unreviewed",
+      "status_id": 2,
+      "status_name": "Unreviewed"
+    }
+  ]
+}

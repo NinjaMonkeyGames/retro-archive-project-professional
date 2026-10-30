@@ -1,15 +1,28 @@
 <?php
 
-// Read variables injected by Docker (with fallbacks if needed)
-$host = getenv('DB_HOST') ?: 'db';
-$user = getenv('DB_USER') ?: 'dev_user';
-$pass = getenv('DB_PASS') ?: 'dev_password';
-$db   = getenv('DB_NAME') ?: 'my_database';
+declare(strict_types=1);
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    echo "<h1>Successfully connected to MySQL!</h1>";
-} catch (PDOException $e) {
-    echo "<h1>Database Connection Failed:</h1> " . $e->getMessage();
+function getDbConnection(): ?PDO
+{
+    // Host must match the service name in docker-compose.yml ('db')
+    $host = 'db';
+    $db   = 'retro-db';
+    $user = 'dev_user';
+    $pass = 'dev_password';
+    $port = '3306';
+
+    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
+
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    try {
+        return new PDO($dsn, $user, $pass, $options);
+    } catch (PDOException $e) {
+        // Return null or log error so build-db.php / index.php can catch it
+        return null;
+    }
 }
